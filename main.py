@@ -3,12 +3,15 @@ from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
 import uuid
 import re
 import html
 import markdown
+
 
 load_dotenv() 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -58,10 +61,14 @@ async def post_form(request: Request, user_input: str = Form(...), session_id: s
         # Call OpenAI API with user's input
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=conversation
+            messages=conversation,
+            #stream=True
         )
 
-        # Get the response text
+        # openai_reply = ""
+        # for part in response:
+            # openai_reply += part['choices'][0]['message']['content']  # Concatenando cada parte da resposta
+        
         openai_reply = response.choices[0].message.content.strip()
         openai_reply = format_code_blocks(openai_reply)
         openai_reply = markdown.markdown(openai_reply)
@@ -71,4 +78,8 @@ async def post_form(request: Request, user_input: str = Form(...), session_id: s
     conversations[session_id] = conversation
     
     # Return page with OpenAI reply
-    return templates.TemplateResponse("index.html", {"request": request, "session_id": session_id, "conversation": conversation})
+    #return templates.TemplateResponse("index.html", {"request": request, "session_id": session_id, "conversation": conversation})
+        
+    return JSONResponse(content={"message_html": openai_reply})
+    
+    

@@ -3,8 +3,68 @@
 <head>
     <title>Text Input Example</title>
     <link rel="stylesheet" href="/static/style.css">
+	    <script>
+        // Função para enviar o chat via AJAX
+        async function sendMessage(event) {
+            event.preventDefault(); // Impede o envio tradicional do formulário
+
+            const user_input = document.getElementById("user_input").value;  // Pegando a entrada do usuário
+            const session_id = document.getElementById("session_id").value;  // Pegando o session_id
+
+            if (!user_input) return;  // Evita enviar uma mensagem vazia
+
+			// Garante que a área do histórico de chat existe
+			let chatHistory = document.querySelector(".chat-history");
+			if (!chatHistory) {
+				chatHistory = document.createElement("div");
+				chatHistory.classList.add("chat-history");
+				document.querySelector(".chat-container").insertBefore(chatHistory, document.querySelector("form"));
+			}
+			
+            const userMessageDiv = document.createElement("div");
+            userMessageDiv.classList.add("message", "user");
+            userMessageDiv.innerHTML = user_input;
+            chatHistory.appendChild(userMessageDiv);
+            
+            // Limpa o campo de entrada
+            document.getElementById("user_input").value = "";
+
+            // Mostra um indicador de carregamento
+            const loadingMessageDiv = document.createElement("div");
+            loadingMessageDiv.classList.add("message", "assistant");
+            loadingMessageDiv.innerHTML = "<i>Carregando...</i>";
+            chatHistory.appendChild(loadingMessageDiv);
+
+            // Envia a solicitação para o servidor usando Fetch
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                    user_input: user_input,
+                    session_id: session_id
+                })
+            });
+
+			const data = await response.json(); // <- Agora é .json()
+			const newMessageHtml = data.message_html;
+
+			chatHistory.removeChild(loadingMessageDiv);
+
+			const assistantMessageDiv = document.createElement("div");
+			assistantMessageDiv.classList.add("message", "assistant");
+			
+			assistantMessageDiv.innerHTML = newMessageHtml;
+			// Isso cria o elemento da resposta
+			chatHistory.appendChild(assistantMessageDiv);
+
+        }
+    </script>
+	
 </head>
 <body>
+
     <div class="chat-container">
         <h1>AI Test</h1>
         
@@ -20,9 +80,10 @@
             </div>
         {% endif %}
 		
-		<form action="/chat" method="post">
-            <input type="hidden" name="session_id" value="{{ session_id }}">
-            <input type="text" name="user_input" placeholder="Ask anything" required>
+		<form onsubmit="sendMessage(event)">
+            <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}">
+            <input type="text" name="user_input" id="user_input" placeholder="Ask anything" required>
+			<button type="submit">Send</button>
         </form>
     </div>
 </body>
