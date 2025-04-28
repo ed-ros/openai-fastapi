@@ -3,7 +3,9 @@
 <head>
     <title>Text Input Example</title>
     <link rel="stylesheet" href="/static/style.css">
-	    <script>
+	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+	<script>
         // Função para enviar o chat via AJAX
         async function sendMessage(event) {
             event.preventDefault(); // Impede o envio tradicional do formulário
@@ -29,11 +31,9 @@
             // Limpa o campo de entrada
             document.getElementById("user_input").value = "";
 
-            // Mostra um indicador de carregamento
-            const loadingMessageDiv = document.createElement("div");
-            loadingMessageDiv.classList.add("message", "assistant");
-            loadingMessageDiv.innerHTML = "<i>Carregando...</i>";
-            chatHistory.appendChild(loadingMessageDiv);
+			const assistantMessageDiv = document.createElement("div");
+			assistantMessageDiv.classList.add("message", "assistant");
+			chatHistory.appendChild(assistantMessageDiv);
 
             // Envia a solicitação para o servidor usando Fetch
             const response = await fetch("/chat", {
@@ -47,18 +47,27 @@
                 })
             });
 
-			const data = await response.json(); // <- Agora é .json()
-			const newMessageHtml = data.message_html;
+			if (!response.body) {
+				assistantMessageDiv.innerHTML = "<i>Erro no streaming</i>";
+				return;
+			}
 
-			chatHistory.removeChild(loadingMessageDiv);
-
-			const assistantMessageDiv = document.createElement("div");
-			assistantMessageDiv.classList.add("message", "assistant");
-			
-			assistantMessageDiv.innerHTML = newMessageHtml;
-			// Isso cria o elemento da resposta
-			chatHistory.appendChild(assistantMessageDiv);
-
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+	
+			let fullText = "";
+			let done = false;
+			while (!done) {
+				const { value, done: doneReading } = await reader.read();
+				done = doneReading;
+				if (value) {
+					const chunk = decoder.decode(value, { stream: true });
+					fullText += chunk;
+					assistantMessageDiv.innerHTML = marked.parse(fullText);
+					// Scroll down as new content appears
+					assistantMessageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
+				}
+			}
         }
     </script>
 	

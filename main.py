@@ -10,8 +10,6 @@ from openai import OpenAI
 import uuid
 import re
 import html
-import markdown
-
 
 load_dotenv() 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -28,16 +26,6 @@ conversations = {}
 client = OpenAI(
     api_key=OPENAI_API_KEY,
 )
-
-
-
-def format_code_blocks(text):
-    def replacer(match):
-        code = match.group(1)
-        escaped_code = html.escape(code)  # Escapa <, >, &, etc
-        return f"<pre><code>{escaped_code}</code></pre>"
-    
-    return re.sub(r"```(.*?)```", replacer, text, flags=re.DOTALL)
     
 @app.get("/", response_class=HTMLResponse)
 async def get_form(request: Request):
@@ -49,37 +37,27 @@ async def post_form(request: Request, user_input: str = Form(...), session_id: s
 
     conversation = conversations.get(session_id)
     if conversation is None:
-        conversation = [{"role": "system", "content": "You are an expert in all banana and chimpanzee related topics. You are also a bit funny, but don't use emojis. Don't make every conversation about banana and chimpanzee, just add subtle hints about it. Consider adding some interesting trivia about bananas or chimpanzees, but make an interesting connection to the current subject. Use markdown."}]
+        conversation = [{"role": "system", "content": "You sometimes like to drop some interesting and related quotes. You are also a bit funny, but don't use emojis. Consider adding some interesting trivia about the subject being discussed. Use markdown when appropriate."}]
     
     conversation.append({"role": "user", "content": user_input})
     
-    TEST_MODE = False
-    
-    if TEST_MODE:
-        openai_reply = f"(fake answer)"
-    else:
-        # Call OpenAI API with user's input
+    def stream_openai_response():
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=conversation,
-            #stream=True
+            stream=True,
         )
+        
+        openai_reply = ""
 
-        # openai_reply = ""
-        # for part in response:
-            # openai_reply += part['choices'][0]['message']['content']  # Concatenando cada parte da resposta
-        
-        openai_reply = response.choices[0].message.content.strip()
-        openai_reply = format_code_blocks(openai_reply)
-        openai_reply = markdown.markdown(openai_reply)
-        
-    conversation.append({"role": "assistant", "content": openai_reply})
-    
-    conversations[session_id] = conversation
-    
-    # Return page with OpenAI reply
-    #return templates.TemplateResponse("index.html", {"request": request, "session_id": session_id, "conversation": conversation})
-        
-    return JSONResponse(content={"message_html": openai_reply})
-    
-    
+        for chunk in response:
+            if chunk.choices[0].delta.content:
+                piece = chunk.choices[0].delta.content
+                openai_reply += piece
+                yield piece
+            
+        # after streaming is done
+        conversation.append({"role": "assistant", "content": openai_reply})
+        conversations[session_id] = conversation
+
+    return StreamingResponse(stream_openai_response(), media_type="text/html")
