@@ -37,7 +37,7 @@ async def post_form(request: Request, user_input: str = Form(...), session_id: s
 
     conversation = conversations.get(session_id)
     if conversation is None:
-        conversation = [{"role": "system", "content": "You sometimes like to drop some interesting and related quotes. You are also a bit funny, but don't use emojis. Consider adding some interesting trivia about the subject being discussed. Use markdown when appropriate."}]
+        conversation = [{"role": "system", "content": "You sometimes like to drop some interesting and related quotes. You are also a bit funny, but don't use emojis. Consider adding some interesting trivia about the subject being discussed."}]
     
     conversation.append({"role": "user", "content": user_input})
     
