@@ -12,6 +12,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 	<script>
+
         // Função para enviar o chat via AJAX
         async function sendMessage(event) {
             event.preventDefault(); // Impede o envio tradicional do formulário
@@ -76,7 +77,6 @@
 			}
         }
     </script>
-	
 </head>
 <body>
 
@@ -97,12 +97,27 @@
             </div>
         {% endif %}
 		
-		<form onsubmit="sendMessage(event)">
+		<form onsubmit="sendMessage(event)" class="chat-input-form">
             <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}">
-            <input type="text" name="user_input" id="user_input" placeholder="Ask anything" required>
+            <textarea name="user_input" id="user_input" placeholder="Ask anything" required rows="1"></textarea>
 			<button type="submit">Send</button>
         </form>
     </div>
-</body>
+	
+	<script>
+		const textarea = document.getElementById("user_input");
 
+		textarea.addEventListener("input", () => {
+			textarea.style.height = "auto";
+			textarea.style.height = Math.min(textarea.scrollHeight, 400) + "px"; // 400px -> 10 lines
+		});
+		textarea.addEventListener("keydown", function(event) {
+			if (event.key === "Enter" && !event.shiftKey) {
+				event.preventDefault(); // prevent newline
+				this.form.requestSubmit(); // submit the form
+				textarea.style.height = "auto";
+			}
+		});
+	</script>
+</body>
 </html>

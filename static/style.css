@@ -10,7 +10,7 @@ html, body {
     overflow-x: hidden; /* No horizontal scrolling */
     font-family: Roboto, Arial, sans-serif;
     background-color: #f5f7fa;
-	padding: 4px 0 4px 0;
+	padding: 4px 0 0 0;
 }
 
 h1 {
@@ -24,11 +24,11 @@ h2, h3, h4, h5, h6 {
 }
 
 blockquote {
-  font-style: italic;
-  color: #444;
-  border-left: 4px solid #ddd;
-  padding-left: 1em;
-  margin: 1em 0;
+	font-style: italic;
+	color: #444;
+	border-left: 4px solid #ddd;
+	padding-left: 1em;
+	margin: 1em 0;
 }
 
 /* Code blocks */
@@ -37,7 +37,13 @@ pre {
     padding: 10px;
     border-radius: 5px;
     overflow-x: auto;
+	max-width: 740px;
+	white-space: pre; /* keep formating */
 	line-height: 1.2;
+	margin: 10px 0 10px 0;
+	border: 1px solid #ccc;
+	letter-spacing: 0;
+	box-sizing: border-box;
 }
 
 code {
@@ -60,10 +66,10 @@ p {
 .chat-container {
     display: flex;
     flex-direction: column;
-    max-width: 900px;
+    max-width: 800px;
     margin: 0 auto;
     background: white;
-    padding: 20px;
+    padding: 20px 20px 0 20px;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 	letter-spacing: 0.5px;
@@ -72,6 +78,7 @@ p {
 .chat-history {
     flex-grow: 1;
     overflow-y: auto;
+	overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -104,6 +111,7 @@ button {
     border-radius: 20px;
     font-size: 16px;
     cursor: pointer;
+	align-self: flex-end;
 }
 
 button:hover {
@@ -111,7 +119,6 @@ button:hover {
 }
 
 .message {
-    max-width: 80%;
     padding: 10px 15px;
     border-radius: 15px;
     font-size: 16px;
@@ -120,15 +127,44 @@ button:hover {
 }
 
 .message.user {
+	max-width: 80%;
     align-self: flex-end;
     background-color: #e0e0e0;
     text-align: right;
 }
 
 .message.assistant {
-    align-self: flex-start;
+    /* align-self: flex-start; */
     background-color: transparent;
     text-align: left;
+}
+
+/* Fixed input form at the bottom */
+.chat-input-form {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: flex;
+    border-top: 1px solid #eee;
+}
+
+textarea {
+	font-family: Roboto, Arial, sans-serif;
+    flex: 1;
+    resize: none;
+	overflow: hidden;
+    overflow-y: auto;
+    padding: 8px 10px 0 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    line-height: 1.2em;
+    max-height: calc(1.2em * 10 + 20px); /* 5 lines + padding */
+}
+textarea:focus {
+	outline: none;
 }
 
 /* Mobile */
@@ -153,9 +189,22 @@ button:hover {
 
     .message {
         font-size: 15px;
-    }
-	
-	.message.assistant {
-		max-width: 100%;
-	}	
+    }	
+}
+
+
+.chat-container {
+    /* height: 100vh; */
+    /* overflow: hidden; /* important to keep scroll within chat-history */ */
+}
+
+.chat-history {
+    /* flex: 1; */
+    /* padding: 20px; */
+    /* box-sizing: border-box; */
+}
+
+.chat-input-form {
+    /* padding: 10px 20px; */
+    z-index: 1; /* keep it above messages */
 }
