@@ -9,8 +9,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 	
-	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.3/dist/purify.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>	
 	
 	<script>
 
@@ -30,8 +29,6 @@
 		}
 	  }
 	});
-
-
 	
 	async function sendMessage(event) {
 		event.preventDefault(); // Impede o envio tradicional do formulário
@@ -102,7 +99,7 @@
 
     <div class="chat-container">
         <a href="/" class="title-link">
-		  <h1>AI Test</h1>
+		  <h1>AI Chat</h1>
 		</a>
         
 		<div class="chat-history">
@@ -119,7 +116,7 @@
 		
 		<form onsubmit="sendMessage(event)" class="chat-input-form">
             <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}">
-            <textarea name="user_input" id="user_input" placeholder="Ask anything" required rows="1"></textarea>
+            <textarea name="user_input" aria-label="Chat input" id="user_input" placeholder="Ask anything" required rows="1"></textarea>
 			<button type="submit">Send</button>
         </form>
     </div>
@@ -141,25 +138,6 @@
 			textarea.style.height = "auto";
 		}
 	});
-	
-	
-	function test() {
-
-		let chatHistory = document.querySelector(".chat-history");
-		
-		const assistantMessageDiv = document.createElement("div");
-		assistantMessageDiv.classList.add("message", "assistant");
-		chatHistory.appendChild(assistantMessageDiv);
-
-		let fullText = "abc **bold** <strong>strong</strong><pre><code>some code <strong>strong</strong></code></pre>";
-		
-		const cleanHTML = marked.parse(fullText);
-		const escaped = escapeHTML(cleanHTML);
-		
-		assistantMessageDiv.innerHTML = escaped;
-	}
-	test();
-	
 	</script>
 	
 	<script>
