@@ -10,72 +10,92 @@
 	<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 	
 	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
+	<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.3/dist/purify.min.js"></script>
+	
 	<script>
 
-        // Função para enviar o chat via AJAX
-        async function sendMessage(event) {
-            event.preventDefault(); // Impede o envio tradicional do formulário
+	marked.setOptions({
+	  silent: true, // debug
+	});
 
-            const user_input = document.getElementById("user_input").value;  // Pegando a entrada do usuário
-            const session_id = document.getElementById("session_id").value;  // Pegando o session_id
+	// disables HTML tags in the input from being interpreted
+	marked.use({
+	  renderer: {
+		html: (html) => {
+			if (typeof html !== 'string') return '';
+			return html
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;');
+		}
+	  }
+	});
 
-            if (!user_input) return;  // Evita enviar uma mensagem vazia
 
-			// Garante que a área do histórico de chat existe
-			let chatHistory = document.querySelector(".chat-history");
-			if (!chatHistory) {
-				chatHistory = document.createElement("div");
-				chatHistory.classList.add("chat-history");
-				document.querySelector(".chat-container").insertBefore(chatHistory, document.querySelector("form"));
-			}
-			
-            const userMessageDiv = document.createElement("div");
-            userMessageDiv.classList.add("message", "user");
-            userMessageDiv.innerHTML = user_input;
-            chatHistory.appendChild(userMessageDiv);
-            
-            // Limpa o campo de entrada
-            document.getElementById("user_input").value = "";
-
-			const assistantMessageDiv = document.createElement("div");
-			assistantMessageDiv.classList.add("message", "assistant");
-			chatHistory.appendChild(assistantMessageDiv);
-
-            // Envia a solicitação para o servidor usando Fetch
-            const response = await fetch("/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({
-                    user_input: user_input,
-                    session_id: session_id
-                })
-            });
-
-			if (!response.body) {
-				assistantMessageDiv.innerHTML = "<i>Erro no streaming</i>";
-				return;
-			}
-
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
 	
-			let fullText = "";
-			let done = false;
-			while (!done) {
-				const { value, done: doneReading } = await reader.read();
-				done = doneReading;
-				if (value) {
-					const chunk = decoder.decode(value, { stream: true });
-					fullText += chunk;
-					assistantMessageDiv.innerHTML = marked.parse(fullText);
-					// Scroll down as new content appears
-					assistantMessageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
-				}
+	async function sendMessage(event) {
+		event.preventDefault(); // Impede o envio tradicional do formulário
+
+		const user_input = document.getElementById("user_input").value;
+		const session_id = document.getElementById("session_id").value;
+
+		if (!user_input) return; // empty message
+
+		let chatHistory = document.querySelector(".chat-history");
+		if (!chatHistory) {
+			chatHistory = document.createElement("div");
+			chatHistory.classList.add("chat-history");
+			document.querySelector(".chat-container").insertBefore(chatHistory, document.querySelector("form"));
+		}
+		
+		const userMessageDiv = document.createElement("div");
+		userMessageDiv.classList.add("message", "user");
+		userMessageDiv.textContent = user_input;
+		chatHistory.appendChild(userMessageDiv);
+		
+		document.getElementById("user_input").value = "";
+
+		const assistantMessageDiv = document.createElement("div");
+		assistantMessageDiv.classList.add("message", "assistant");
+		chatHistory.appendChild(assistantMessageDiv);
+
+		// Envia a solicitação para o servidor usando Fetch
+		const response = await fetch("/chat", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				user_input: user_input,
+				session_id: session_id
+			})
+		});
+
+		if (!response.body) {
+			assistantMessageDiv.innerHTML = "<i>Erro no streaming</i>";
+			return;
+		}
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+
+		let fullText = "";
+		let done = false;
+		while (!done) {
+			const { value, done: doneReading } = await reader.read();
+			done = doneReading;
+			if (value) {
+				const chunk = decoder.decode(value, { stream: true });
+				fullText += chunk;
+				
+				const cleanHTML = marked.parse(fullText);
+				assistantMessageDiv.innerHTML = cleanHTML;
+				
+				// Scroll down as new content appears
+				assistantMessageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
 			}
-        }
+		}
+	}
     </script>
 </head>
 <body>
@@ -85,8 +105,8 @@
 		  <h1>AI Test</h1>
 		</a>
         
-        {% if conversation %}
-            <div class="chat-history">
+		<div class="chat-history">
+			{% if conversation %}
                 {% for message in conversation %}
                     {% if message.role != 'system' %}
                         <div class="message {{ message.role }}">
@@ -94,8 +114,8 @@
                         </div>
                     {% endif %}
                 {% endfor %}
-            </div>
-        {% endif %}
+			{% endif %}
+		</div>
 		
 		<form onsubmit="sendMessage(event)" class="chat-input-form">
             <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}">
@@ -105,19 +125,94 @@
     </div>
 	
 	<script>
-		const textarea = document.getElementById("user_input");
+	// change textarea to allow multiple lines until a limit of 10.
+	const textarea = document.getElementById("user_input");
 
-		textarea.addEventListener("input", () => {
+	textarea.addEventListener("input", () => {
+		textarea.style.height = "auto";
+		textarea.style.height = Math.min(textarea.scrollHeight, 400) + "px"; // 400px -> 10 lines
+	});
+	
+	// change 'enter' to act as submit button instead of newline in <textarea>
+	textarea.addEventListener("keydown", function(event) {
+		if (event.key === "Enter" && !event.shiftKey) {
+			event.preventDefault(); // prevent newline
+			this.form.requestSubmit();
 			textarea.style.height = "auto";
-			textarea.style.height = Math.min(textarea.scrollHeight, 400) + "px"; // 400px -> 10 lines
+		}
+	});
+	
+	
+	function test() {
+
+		let chatHistory = document.querySelector(".chat-history");
+		
+		const assistantMessageDiv = document.createElement("div");
+		assistantMessageDiv.classList.add("message", "assistant");
+		chatHistory.appendChild(assistantMessageDiv);
+
+		let fullText = "abc **bold** <strong>strong</strong><pre><code>some code <strong>strong</strong></code></pre>";
+		
+		const cleanHTML = marked.parse(fullText);
+		const escaped = escapeHTML(cleanHTML);
+		
+		assistantMessageDiv.innerHTML = escaped;
+	}
+	test();
+	
+	</script>
+	
+	<script>
+	// observe change in chat-history to add "copy" button to code.
+	const observeCodeBlocks = () => {
+		const target = document.querySelector('.chat-history');
+		if (!target) {
+			console.error('chat-history element not found.');
+			return;
+		}
+		
+		const observer = new MutationObserver(() => {
+		  const codeBlocks = document.querySelectorAll('pre > code');
+
+		  codeBlocks.forEach(code => {
+			const pre = code.parentElement;
+
+			// Skip if already processed
+			if (pre.parentElement.classList.contains('code-block')) return;
+
+			// Create wrapper div
+			const wrapper = document.createElement('div');
+			wrapper.className = 'code-block';
+
+			// Create copy button
+			const button = document.createElement('button');
+			button.className = 'copy-button';
+			button.textContent = 'Copy';
+
+			// Replace pre with wrapper and re-append elements
+			pre.replaceWith(wrapper);
+			wrapper.appendChild(button);
+			wrapper.appendChild(pre);
+
+			// Add copy functionality
+			button.addEventListener('click', () => {
+			  navigator.clipboard.writeText(code.innerText).then(() => {
+				button.textContent = 'Copied!';
+				setTimeout(() => (button.textContent = 'Copy'), 2000);
+			  }).catch(err => {
+				console.error('Copy failed:', err);
+			  });
+			});
+		  });
 		});
-		textarea.addEventListener("keydown", function(event) {
-			if (event.key === "Enter" && !event.shiftKey) {
-				event.preventDefault(); // prevent newline
-				this.form.requestSubmit(); // submit the form
-				textarea.style.height = "auto";
-			}
+
+		observer.observe(target, {
+		  childList: true,
+		  subtree: true
 		});
+	};
+
+	document.addEventListener('DOMContentLoaded', observeCodeBlocks);
 	</script>
 </body>
 </html>
